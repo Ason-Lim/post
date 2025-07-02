@@ -2,21 +2,119 @@
 <html lang="ko">
 <head>
   <meta charset="UTF-8" />
-  <title>네이버 지도: 마커 + 주소 저장 + 반경</title>
+  <title>네이버 동적 지도</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+ <!-- 네이버 Maps API (Client ID 방식) -->
   <script src="https://oapi.map.naver.com/openapi/v3/maps.js?ncpClientId=s3f4t4mo6d"></script>
   <style>
     #map {
       width: 100%;
-      height: 600px;
+      height: 500px;
+      margin-bottom: 10px:      
     }
     #info {
-      margin-top: 10px;
-      padding: 10px;
-      background: #f8f8f8;
-      border: 1px solid #ccc;
       font-family: monospace;
-    }
+      background: #f7f7f7;
+      padding: 10px;
+      border: 1px solid #ccc; }
   </style>
+</head>
+<body>
+ 
+  <h2>📍 서울시청 초기 마커 + 주소검색 + 반경 표시</h2>
+
+  <input type="text" id="searchInput" placeholder="주소 입력" style="width:300px;">
+  <button onclick="searchAddress()">🔍 검색</button>
+
+  <div id="map"></div>
+  <div id="info">📌 클릭 위치 정보가 여기에 표시됩니다.</div>
+
+  <script>
+    const saved = [];
+    let circle = null;
+
+    // 초기 지도 위치: 서울시청
+    const seoulCityHall = new naver.maps.LatLng(37.5662952, 126.9779451);
+
+    const map = new naver.maps.Map('map', {
+      center: seoulCityHall,
+      zoom: 13
+    });
+
+    // 초기 마커 (서울시청)
+    new naver.maps.Marker({
+      position: seoulCityHall,
+      map: map,
+      title: '서울특별시청'
+    });
+
+    // 지도 클릭 시 이벤트
+    naver.maps.Event.addListener(map, 'click', function (e) {
+      const coord = e.coord;
+      const lat = coord.lat();
+      const lng = coord.lng();
+
+      // 마커
+      new naver.maps.Marker({ position: coord, map: map });
+
+      // 반경 원
+      if (circle) circle.setMap(null);
+      circle = new naver.maps.Circle({
+        map: map,
+        center: coord,
+        radius: 500,
+        strokeColor: '#007AFF',
+        fillColor: '#CCE6FF',
+        fillOpacity: 0.4
+      });
+
+      // 주소 정보
+      naver.maps.Service.reverseGeocode({
+        coords: coord,
+        orders: naver.maps.Service.OrderType.ADDR
+      }, function (status, response) {
+        if (status !== naver.maps.Service.Status.OK) return alert('주소 조회 실패');
+
+        const result = response.v2.address;
+        const address = result.jibunAddress || result.roadAddress || "주소 없음";
+
+        saved.push({ lat, lng, address });
+
+        document.getElementById('info').innerHTML = `
+          🧭 위도: ${lat.toFixed(6)}<br>
+          📍 경도: ${lng.toFixed(6)}<br>
+          🏠 주소: ${address}<br>
+          💾 저장된 위치 수: ${saved.length}
+        `;
+        console.log(saved);
+      });
+    });
+
+    // 주소 검색 기능
+    function searchAddress() {
+      const query = document.getElementById('searchInput').value;
+      if (!query) return alert('주소를 입력하세요');
+
+      naver.maps.Service.geocode({ query: query }, function (status, response) {
+        if (status !== naver.maps.Service.Status.OK) return alert('검색 실패');
+
+        const item = response.v2.addresses[0];
+        const latlng = new naver.maps.LatLng(item.y, item.x);
+
+        map.setCenter(latlng);
+        new naver.maps.Marker({ position: latlng, map: map });
+      });
+    }
+  </script>
+</body>
+</html>  
+  
+  <style>#map{width:100%;height:500px;}</style>
+</head>
+<Body>
+  <h3> 🗺️ 네이버 지도 + 마커 + 클릭 </h3>
+  <div id="map"></div></h3>
+</Body>  
 </head>
 <body>
   <h2>🗺️ 지도 클릭 → 마커 생성 + 주소 저장 + 반경 표시</h2>
